@@ -4,6 +4,7 @@
 // and fields like these:
 //
 // {
+//   "printer_name" : "Duet3",
 //   "wifi_ssid" : "xxx",
 //   "wifi_password" : "yyy",
 //   "status_url" : "http://xx.xx.xx.xx/rr_status?type=3"
@@ -66,7 +67,7 @@ static int duet_error_allowance = 0;
 // Per duet status char screen configurations.
 // Colors are 16 bit RGB565 format.
 struct StatusConfig {
-  // The status char as returned by dutet. The special
+  // The status char as returned by duet. The special
   // char '*' indicates default catch all terminator.
   const char c;
   // User friendly status name.
@@ -101,6 +102,44 @@ static const StatusConfig& decodeStatusChar(char c) {
       return *p;
     }
     p++;
+  }
+}
+
+// Common helper for rendering battery status
+static void drawBatteryStatus() {
+  const int batteryLevel = M5.Power.getBatteryLevel();
+  int fill_width = 0;
+  
+  switch(batteryLevel) {
+    case 100:
+      fill_width = 28;
+      break;
+    case 75:
+      fill_width = 21;
+      break;
+    case 50:
+      fill_width = 14;
+      break;
+    case 25:
+      fill_width = 7;
+      break;
+    default:
+      fill_width = 0;
+      break;
+  }
+
+  M5.Lcd.drawRect(3, 3, 28, 14, BLACK);
+  M5.Lcd.fillRect(3, 3, fill_width, 14, BLACK);
+  M5.Lcd.setCursor(35, 3, 1);
+  M5.Lcd.setTextSize(2);
+  if (M5.Power.isCharging()) {
+    if (M5.Power.isChargeFull()) {
+      M5.Lcd.printf("%d%% Full", batteryLevel);
+    } else {
+      M5.Lcd.printf("%d%% Charging", batteryLevel);
+    }
+  } else {
+    M5.Lcd.printf("%d%%", batteryLevel); 
   }
 }
 
@@ -155,6 +194,17 @@ static void drawInfoScreen(const DuetStatus& duet_status) {
   M5.Lcd.fillScreen(config.bg_color);
   M5.Lcd.setTextColor(config.text_color);
 
+  // Battery Level
+  drawBatteryStatus();    
+
+  // Printer name.
+  M5.Lcd.setCursor(20, 30, 1);
+  M5.Lcd.setTextSize(2);
+  M5.Lcd.printf("%s", config_parser.ParsedData().printer_name.c_str());
+
+  M5.Lcd.setCursor(20, 50, 1);
+  M5.Lcd.setTextSize(2);
+
   // Status name.
   M5.Lcd.setCursor(20, 102, 1);
   M5.Lcd.setTextSize(5);
@@ -175,12 +225,13 @@ static void drawInfoScreen(const DuetStatus& duet_status) {
   if (config.display_temps) {
     M5.Lcd.setCursor(130, 215, 1);
     M5.Lcd.setTextSize(2);
-    M5.Lcd.printf("%0.1fc  %0.1fc", duet_status.temp1, duet_status.temp2);
+    M5.Lcd.printf("%0.1fC  %0.1fC", duet_status.temp1, duet_status.temp2);
   }
 }
 
 void setup() {
   M5.begin();
+  M5.Power.begin();
   Serial.begin(115200);
   Serial.println();
 
@@ -216,7 +267,7 @@ void setup() {
 
   // Has all required config values?
   const Config& config = config_parser.ParsedData();
-  if (config.wifi_ssid.isEmpty() || config.wifi_password.isEmpty() || config.status_url.isEmpty()) {
+  if (config.printer_name.isEmpty() || config.wifi_ssid.isEmpty() || config.wifi_password.isEmpty() || config.status_url.isEmpty()) {
     drawFatalErrorScreen("Missing required config\n field.");
     return;
   }
@@ -233,6 +284,10 @@ void setup() {
 
 
 void loop() {
+  Serial.print("Battery Level: ");
+  Serial.print(M5.Power.getBatteryLevel());
+  Serial.println("%");
+  
   // Fatal error. Stay in this screen.
   if (fatal_error) {
     delay(10000);
