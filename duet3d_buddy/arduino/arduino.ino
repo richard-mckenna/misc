@@ -202,9 +202,6 @@ static void drawInfoScreen(const DuetStatus& duet_status) {
   M5.Lcd.setTextSize(2);
   M5.Lcd.printf("%s", config_parser.ParsedData().printer_name.c_str());
 
-  M5.Lcd.setCursor(20, 50, 1);
-  M5.Lcd.setTextSize(2);
-
   // Status name.
   M5.Lcd.setCursor(20, 102, 1);
   M5.Lcd.setTextSize(5);
