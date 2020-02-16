@@ -33,6 +33,11 @@ void ConfigParser::OnReceivedValue(const char id[], const char val[],
     return;
   }
 
+  if (strcmp(id, "printer_name") == 0) {
+    captured_config_.printer_name = val;
+    return;
+  }
+
   if (strcmp(id, "wifi_ssid") == 0) {
     captured_config_.wifi_ssid = val;
     return;

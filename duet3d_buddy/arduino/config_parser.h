@@ -7,11 +7,13 @@
 
 // Represents parsed config
 struct Config {
+  SimpleString<30> printer_name;
   SimpleString<30> wifi_ssid;
   SimpleString<30> wifi_password;
   SimpleString<100> status_url;
 
   void reset() {
+    printer_name.clear();
     wifi_ssid.clear();
     wifi_password.clear();
     status_url.clear();
